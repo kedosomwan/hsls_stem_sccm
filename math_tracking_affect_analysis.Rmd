@@ -19,6 +19,7 @@ library(flextable)
 library(survey)
 library(haven)
 library(mitools)
+library(interactions)
 ```
 
 ```{r}
@@ -57,7 +58,7 @@ psych::alpha(df_alpha2)
 eff_lm <- lm(
   data = df,
   scale_math_eff ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban )
@@ -70,7 +71,7 @@ summ(eff_lm)
 id_lm <- lm(
   data = df,
   scale_math_id ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban )
@@ -84,7 +85,7 @@ summ(id_lm)
 int_lm <- lm(
   data = df,
   scale_math_int ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban )
@@ -97,7 +98,7 @@ summ(int_lm)
 uti_lm <- lm(
   data = df,
   scale_math_uti ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban )
@@ -133,7 +134,7 @@ df_brr <- svrepdesign(
 eff_lm_svy <- svyglm(
   design = df_brr,
   scale_math_eff ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban)
@@ -146,7 +147,7 @@ summ(eff_lm_svy)
 id_lm_svy <- svyglm(
   design = df_brr,
   scale_math_id ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban )
@@ -160,7 +161,7 @@ summ(id_lm_svy)
 int_lm_svy <- svyglm(
   design = df_brr,
   scale_math_int ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban )
@@ -173,7 +174,7 @@ summ(int_lm_svy)
 uti_lm_svy <- svyglm(
   design = df_brr,
   scale_math_uti ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban )
@@ -199,7 +200,7 @@ tbl_merge(list(eff_lm_tbl_svy, id_lm_tbl_svy, int_lm_tbl_svy, uti_lm_tbl_svy),
 ```{r}
 eff_lm_imp <- with(df_imp, lm(
   scale_math_eff ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban))
@@ -212,7 +213,7 @@ summ(eff_lm_imp)
 ```{r}
 id_lm_imp <- with(df_imp, lm(
   scale_math_id ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban))
@@ -225,7 +226,7 @@ summ(id_lm_imp)
 ```{r}
 int_lm_imp <- with(df_imp, lm(
   scale_math_int ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban))
@@ -237,7 +238,7 @@ summ(int_lm_imp)
 ```{r}
 uti_lm_imp <- with(df_imp, lm(
   scale_math_uti ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban))
@@ -293,7 +294,7 @@ make_mi_table <- function(model) {
 ```{r}
 eff_lm_imp_svy <- with(df_brr_imp, svyglm(
   scale_math_eff ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban))
@@ -306,7 +307,7 @@ summary(MIcombine(eff_lm_imp_svy))
 ```{r}
 id_lm_imp_svy <- with(df_brr_imp, svyglm(
   scale_math_id ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban))
@@ -320,7 +321,7 @@ summary(MIcombine(id_lm_imp_svy))
 ```{r}
 int_lm_imp_svy <- with(df_brr_imp, svyglm(
   scale_math_int ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban))
@@ -333,7 +334,7 @@ summary(MIcombine(int_lm_imp_svy))
 ```{r}
 uti_lm_imp_svy <- with(df_brr_imp, svyglm(
   scale_math_uti ~ 
-    time*math_level + teach_treat_std +
+    time*math_level + teach_treat_std*math_level +
     ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
     public + urban))
