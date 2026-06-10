@@ -44,10 +44,14 @@ names(hsls_raw) <- tolower(names(hsls_raw))
 ## Subset Data for Analysis
 
 ```{r}
-# drop non-respondents
+
 hsls <- hsls_raw %>%
+  # drop non-respondents
   filter(x1sqstat != 8,
-         x2sqstat != 8)
+         x2sqstat != 8,
+         # drop no-math 9th grade
+         x3thimath9 != 0,
+         )
 
 # keep relevant variables
 hsls <- hsls %>%
@@ -76,21 +80,24 @@ hsls <- labelled::drop_unused_value_labels(hsls)
 ```
 
 # Data Manipulation
+
+## Math Variables
 ```{r}
 ################################################################################
 # Outcomes - Math
 ################################################################################
 
 df <- hsls %>%
-  filter(!is.na(x1mthid),
-         !is.na(x2mthid),
-         !is.na(x2mtheff),
-         !is.na(x1mtheff),
-         !is.na(x1mthuti),
-         !is.na(x2mthuti),
-         !is.na(x1mthint),
-         !is.na(x2mthint_r)) %>%
-  rename(
+  #filter(
+  #  !is.na(x1mthid),
+  #  !is.na(x2mthid),
+  #  !is.na(x2mtheff),
+  #  !is.na(x1mtheff),
+  #  !is.na(x1mthuti),
+  #  !is.na(x2mthuti),
+  #  !is.na(x1mthint),
+  #  !is.na(x2mthint_r)) %>%
+  mutate(
     scale_math_id1  = x1mthid,
     scale_math_id2  = x2mthid,
     scale_math_eff1 = x1mtheff,
@@ -108,32 +115,39 @@ df <- hsls %>%
 df <- df %>%
   mutate(
     adv_math1 = case_when(
-      x3thimath9 <= 4 ~ 0,
-      x3thimath9 > 4  ~ 1,
+      x3thimath9 <= 4 ~ 0, # algebra 1 and below
+      x3thimath9 > 4  ~ 1, # algebra one or more advanced
       TRUE ~ NA_real_
     ),
     adv_math2 = case_when(
-      s2himath12 <= 6 ~ 0,
-      s2himath12 >= 7 ~ 1,
-      s2himath12 >= 12 ~ 0,
-      s2himath12 == 16 ~ 1,
+      s2himath12 <= 5 ~ 0, #geometry and below
+      #  analytic geo, trig, precalc, calc, stats, ib/ap
+      s2himath12 %in% c(6,7,8,9,10,11,12,16) ~ 1, 
+      s2himath12 %in% c(13,14,15,18,19) ~ 0, #integ math, business, other
       TRUE ~ NA_real_
-    )
+    ),
+    math_level1 = case_when(
+      x3thimath9 <= 3 ~ 1, # below alg 1
+      x3thimath9 == 4  ~ 2, # alg 1
+      x3thimath9 == 5 ~ 3, # geometry (adv)
+      x3thimath9 >= 6 ~ 4, ## above geometry double advanced
+      TRUE ~ NA_real_
+    ),
+    math_level1 = ordered(math_level1),
+    math_level2 = case_when(
+       # ageo, alg 1, pre-alg, other, business, integrated math 1/2
+      s2himath12 %in% c(1,2,5,13,14,18,19) ~ 1,
+      # alg 2, integrated math III
+      s2himath12 %in% c(3,15) ~ 2, 
+       # trig/precalc, alg3, analytic geometry
+      s2himath12 %in% c(4,6,7,8) ~ 3,
+      # stats, calc, AP/IB
+      s2himath12 %in% c(9,10,11,12,16) ~ 4,
+      TRUE ~ NA_real_
+    ),
+    math_level2 = ordered(math_level2)
   )
 
-################################################################################
-# School Characteristics
-################################################################################
-
-df <- df %>%
-  mutate(
-    urban = if_else(x1locale == 1, 1, 0),
-    public = case_when(
-      x1control == 1 ~ 1,
-      x1control == 2 ~ 0,
-      TRUE ~ NA_real_
-    )
-  )
 
 ################################################################################
 # Prior Achievement
@@ -145,40 +159,6 @@ df <- df %>%
     math_score = if_else(x1txmquint < 0, NA_real_, math_score)
   )
 
-################################################################################
-# Teacher Characteristics
-################################################################################
-
-df <- df %>%
-  mutate(
-    math_teach_years = m1mthyrs912,
-    math_teach_alt_cert = ifelse(m1altcert == 1, 1, 0),
-    math_teach_cert_type = case_when(
-      m1certtype == 1 ~ 1,
-      m1certtype > 1 & m1certtype != 5 ~ 2,
-      m1certtype == 5 ~ 3,
-      TRUE ~ NA_real_
-    ),
-    math_teacher_math_job = ifelse(m1mathjob == 1, 1, 0),
-    math_teach_race = x1tmrace,
-    math_teach_adv_deg = case_when(
-      m1hideg >= 4 ~ 1,
-      m1hideg == 3 ~ 0,
-      TRUE ~ NA_real_
-    ),
-    math_teach_female = case_when(
-      m1sex == 2 ~ 1,
-      m1sex == 1 ~ 0,
-      TRUE ~ NA_real_
-    )
-  ) %>%
-  mutate(
-    math_teach_cert_type = factor(
-      math_teach_cert_type,
-      levels = c(1,2,3),
-      labels = c("regular", "probationary/emergency", "none")
-    )
-  )
 
 ################################################################################
 # Affective Characteristics
@@ -200,36 +180,31 @@ df <- df %>%
     math_interest2 =  5 - as.numeric(s2mtchintrst)
   ) 
 
-df_alpha1 <- df %>% dplyr::select(math_treat1, math_easy1, math_interest1)
-df_alpha2 <- df %>% dplyr::select(math_treat2, math_easy2, math_interest2)
-psych::alpha(df_alpha1)
-psych::alpha(df_alpha2)
+# Create Math Teacher Scale
 
 df <- df %>%
   mutate(
-    scale_math_teach1 = rowMeans(across(c(math_treat1, math_easy1, math_interest1))),
-    scale_math_teach2 = rowMeans(across(c(math_treat2, math_easy2, math_interest2)))
-
+    scale_math_teach1 = 
+      rowMeans(
+        across(c(math_treat1, math_easy1, math_interest1))),
+    scale_math_teach2 = 
+      rowMeans(
+        across(c(math_treat2, math_easy2, math_interest2))),
+    teach_treat_std1 = as.numeric(scale(scale_math_teach1)),
+    teach_treat_std2 = as.numeric(scale(scale_math_teach2))
     )
+```
 
-################################################################################
-# Demographic Characteristics
-################################################################################
-
+## Demographic & School Characteristics
+```{r}
 df <- df %>%
   mutate(
-    first_gen = case_when(
-      (x1par1edu < 4 & x1par1edu > 0) |
-        (x1par2edu < 4 & x1par2edu > 0) ~ 1,
-      x1par1edu > 3 | x1par2edu > 3 ~ 0,
-      TRUE ~ NA_real_
-    ),
     female = case_when(
       x1sex == 2 ~ 1,
       x1sex == 1 ~ 0,
       TRUE ~ NA_real_
     ),
-    race = case_when(
+    race_ethnicity = factor(case_when(
       x1race %in% c(1,7) ~ "Another Race",
       x1race == 2 ~ "Asian",
       x1race == 3 ~ "Black",
@@ -237,15 +212,11 @@ df <- df %>%
       x1race == 6 ~ "Multiple",
       x1race == 8 ~ "White",
       TRUE ~ NA_character_
-    ),
-    stud_race = factor(race),
-    frpl = case_when(
-      x1poverty185 == 0 ~ 0,
-      x1poverty185 == 1 ~ 1,
-      TRUE ~ NA_real_
-    ),
+    )),
     ses_quintile1 = x1sesq5,
     ses_quintile2 = x2sesq5,
+    ses1 = x1ses,
+    ses2 = x2ses,
     early_algebra = ifelse(s1m8 >=4 & s1m8 !=9, 1, 0),
     
     firstlang = case_when(
@@ -256,36 +227,50 @@ df <- df %>%
     ),
     first_lang = factor(firstlang)
   )
+
+df <- df %>%
+  mutate(
+    urban = if_else(x1locale == 1, 1, 0),
+    public = case_when(
+      x1control == 1 ~ 1,
+      x1control == 2 ~ 0,
+      TRUE ~ NA_real_
+    )
+  )
 ```
 
-# Save Subsets
+# Save Modified Data
 
 ```{r}
 ################################################################################
 # Save Subset (WIDE)
 ################################################################################
 
+
+write_dta(df, "data/hsls_subset_wide.dta")
+```
+
+# Subset, reshape, save
+```{r}
+
 df <- df %>%
   dplyr::select(
     scale_math_id1, scale_math_id2,
     adv_math1, adv_math2,
+    math_level1, math_level2,
     scale_math_eff1, scale_math_eff2,
     scale_math_uti1, scale_math_uti2,
     scale_math_int1, scale_math_int2,
-    scale_math_teach1, scale_math_teach2,
+    teach_treat_std1, teach_treat_std2,
     ses_quintile1, ses_quintile2,
+    ses1, ses2,
     starts_with("math_teach"),
     early_algebra, math_score, 
-    first_gen, first_lang, frpl, stud_race, female, 
+    first_lang, race_ethnicity, female, 
     urban, public,
     stu_id, starts_with("w2w1s")
   )
 
-write_dta(df, "data/hsls_subset_wide.dta")
-
-################################################################################
-# Reshape to LONG
-################################################################################
 
 df_long <- df %>%
   pivot_longer(
@@ -293,8 +278,9 @@ df_long <- df %>%
              scale_math_eff1, scale_math_eff2,
              scale_math_uti1, scale_math_uti2,
              scale_math_int1, scale_math_int2,
-             scale_math_teach1, scale_math_teach2,
-             adv_math1, adv_math2, ses_quintile1, ses_quintile2),
+             teach_treat_std1, teach_treat_std2,
+             adv_math1, adv_math2, math_level1, math_level2,
+             ses_quintile1, ses_quintile2, ses1, ses2),
     names_to = c(".value","time"),
     names_pattern = "(.*)([12])"
   ) %>%
