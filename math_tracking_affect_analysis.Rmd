@@ -198,6 +198,7 @@ tbl_merge(list(eff_lm_tbl_svy, id_lm_tbl_svy, int_lm_tbl_svy, uti_lm_tbl_svy),
 ```
 
 `r knitr::knit_exit()`
+
 # Imputed Models
 
 ## Efficacy
