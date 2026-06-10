@@ -1,7 +1,11 @@
 ---
 title: "Math Affect"
-output: word_document
+author: "Kristian Edosomwan"
 date: "`r Sys.Date()`"
+output:
+  word_document:
+    toc: true
+    toc_depth: 3
 ---
 
 
@@ -193,6 +197,7 @@ tbl_merge(list(eff_lm_tbl_svy, id_lm_tbl_svy, int_lm_tbl_svy, uti_lm_tbl_svy),
   as_flex_table()
 ```
 
+`r knitr::knit_exit()`
 # Imputed Models
 
 ## Efficacy
