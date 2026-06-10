@@ -1,0 +1,332 @@
+---
+title: "Math Tracking Affect"
+output: word_document
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Setup
+
+## Load libraries and dataset
+
+```{r, include=FALSE}
+library(tidyverse)
+library(gtsummary)
+library(modelsummary)
+library(jtools)
+library(mice)
+library(MASS)
+library(dplyr)
+library(haven)
+library(stringr)
+library(tidyr)
+library(flextable)
+library(forcats)
+library(mice)
+
+```
+
+```{r load dataset}
+################################################################################
+# Subset Data & Label Missing
+################################################################################
+
+# Load data
+hsls_raw <- read_dta("data/hsls_17_student_pets_sr_v1_0.dta")
+
+# lowercase all variable names
+names(hsls_raw) <- tolower(names(hsls_raw))
+```
+
+## Subset Data for Analysis
+
+```{r}
+# drop non-respondents
+hsls <- hsls_raw %>%
+  filter(x1sqstat != 8,
+         x2sqstat != 8)
+
+# keep relevant variables
+hsls <- hsls %>%
+  dplyr::select(
+         starts_with("x1"),
+         starts_with("x2"),
+         starts_with("x3"),
+         starts_with("s1"),
+         starts_with("s2"),
+         starts_with("w2w1st"),
+         starts_with("m1"),
+         stu_id
+         )
+
+# replace missing codes
+
+# replace missing values
+hsls[hsls == -9] <- NA
+hsls[hsls == -8] <- NA
+hsls[hsls == -7] <- NA
+hsls[hsls == -6] <- NA
+hsls[hsls == -5] <- NA
+
+hsls <- labelled::drop_unused_value_labels(hsls)
+
+```
+
+# Data Manipulation
+```{r}
+################################################################################
+# Outcomes - Math
+################################################################################
+
+df <- hsls %>%
+  filter(!is.na(x1mthid),
+         !is.na(x2mthid),
+         !is.na(x2mtheff),
+         !is.na(x1mtheff),
+         !is.na(x1mthuti),
+         !is.na(x2mthuti),
+         !is.na(x1mthint),
+         !is.na(x2mthint_r)) %>%
+  rename(
+    scale_math_id1  = x1mthid,
+    scale_math_id2  = x2mthid,
+    scale_math_eff1 = x1mtheff,
+    scale_math_eff2 = x2mtheff,
+    scale_math_uti1 = x1mthuti,
+    scale_math_uti2 = x2mthuti,
+    scale_math_int1 = x1mthint,
+    scale_math_int2 = x2mthint_r
+  )
+
+################################################################################
+# Treatment - Math
+################################################################################
+
+df <- df %>%
+  mutate(
+    adv_math1 = case_when(
+      x3thimath9 <= 4 ~ 0,
+      x3thimath9 > 4  ~ 1,
+      TRUE ~ NA_real_
+    ),
+    adv_math2 = case_when(
+      s2himath12 <= 6 ~ 0,
+      s2himath12 >= 7 ~ 1,
+      s2himath12 >= 12 ~ 0,
+      s2himath12 == 16 ~ 1,
+      TRUE ~ NA_real_
+    )
+  )
+
+################################################################################
+# School Characteristics
+################################################################################
+
+df <- df %>%
+  mutate(
+    urban = if_else(x1locale == 1, 1, 0),
+    public = case_when(
+      x1control == 1 ~ 1,
+      x1control == 2 ~ 0,
+      TRUE ~ NA_real_
+    )
+  )
+
+################################################################################
+# Prior Achievement
+################################################################################
+
+df <- df %>%
+  mutate(
+    math_score = x1txmtscor,
+    math_score = if_else(x1txmquint < 0, NA_real_, math_score)
+  )
+
+################################################################################
+# Teacher Characteristics
+################################################################################
+
+df <- df %>%
+  mutate(
+    math_teach_years = m1mthyrs912,
+    math_teach_alt_cert = ifelse(m1altcert == 1, 1, 0),
+    math_teach_cert_type = case_when(
+      m1certtype == 1 ~ 1,
+      m1certtype > 1 & m1certtype != 5 ~ 2,
+      m1certtype == 5 ~ 3,
+      TRUE ~ NA_real_
+    ),
+    math_teacher_math_job = ifelse(m1mathjob == 1, 1, 0),
+    math_teach_race = x1tmrace,
+    math_teach_adv_deg = case_when(
+      m1hideg >= 4 ~ 1,
+      m1hideg == 3 ~ 0,
+      TRUE ~ NA_real_
+    ),
+    math_teach_female = case_when(
+      m1sex == 2 ~ 1,
+      m1sex == 1 ~ 0,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  mutate(
+    math_teach_cert_type = factor(
+      math_teach_cert_type,
+      levels = c(1,2,3),
+      labels = c("regular", "probationary/emergency", "none")
+    )
+  )
+
+################################################################################
+# Affective Characteristics
+################################################################################
+
+vars_to_numeric <- c("s1mtchmfdiff","s1mtchtreat","s1mtchintrst","s1mtcheasy",
+                     "s2mtchtreat","s2mtchintrst","s2mtcheasy")
+
+df <- df %>%
+  #mutate(across(all_of(vars_to_numeric), as.numeric)) %>%
+  mutate(
+    math_treat1 = as.numeric(s1mtchtreat),
+    math_treat2 = as.numeric(s2mtchtreat),
+    
+    # reverse code so that more agreement with positive is higher
+    math_easy1 =  5 - as.numeric(s1mtcheasy),
+    math_easy2 =  5 - as.numeric(s2mtcheasy),
+    math_interest1 =  5 - as.numeric(s1mtchintrst),
+    math_interest2 =  5 - as.numeric(s2mtchintrst)
+  ) 
+
+df_alpha1 <- df %>% dplyr::select(math_treat1, math_easy1, math_interest1)
+df_alpha2 <- df %>% dplyr::select(math_treat2, math_easy2, math_interest2)
+psych::alpha(df_alpha1)
+psych::alpha(df_alpha2)
+
+df <- df %>%
+  mutate(
+    scale_math_teach1 = rowMeans(across(c(math_treat1, math_easy1, math_interest1))),
+    scale_math_teach2 = rowMeans(across(c(math_treat2, math_easy2, math_interest2)))
+
+    )
+
+################################################################################
+# Demographic Characteristics
+################################################################################
+
+df <- df %>%
+  mutate(
+    first_gen = case_when(
+      (x1par1edu < 4 & x1par1edu > 0) |
+        (x1par2edu < 4 & x1par2edu > 0) ~ 1,
+      x1par1edu > 3 | x1par2edu > 3 ~ 0,
+      TRUE ~ NA_real_
+    ),
+    female = case_when(
+      x1sex == 2 ~ 1,
+      x1sex == 1 ~ 0,
+      TRUE ~ NA_real_
+    ),
+    race = case_when(
+      x1race %in% c(1,7) ~ "Another Race",
+      x1race == 2 ~ "Asian",
+      x1race == 3 ~ "Black",
+      x1race %in% c(4,5) ~ "Latinx",
+      x1race == 6 ~ "Multiple",
+      x1race == 8 ~ "White",
+      TRUE ~ NA_character_
+    ),
+    stud_race = factor(race),
+    frpl = case_when(
+      x1poverty185 == 0 ~ 0,
+      x1poverty185 == 1 ~ 1,
+      TRUE ~ NA_real_
+    ),
+    ses_quintile1 = x1sesq5,
+    ses_quintile2 = x2sesq5,
+    early_algebra = ifelse(s1m8 >=4 & s1m8 !=9, 1, 0),
+    
+    firstlang = case_when(
+      x1duallang == 1 ~ "English only",
+      x1duallang == 2 ~ "non-English only",
+      x1duallang == 3 ~ "English and non-English equally",
+      TRUE ~ NA_character_
+    ),
+    first_lang = factor(firstlang)
+  )
+```
+
+# Save Subsets
+
+```{r}
+################################################################################
+# Save Subset (WIDE)
+################################################################################
+
+df <- df %>%
+  dplyr::select(
+    scale_math_id1, scale_math_id2,
+    adv_math1, adv_math2,
+    scale_math_eff1, scale_math_eff2,
+    scale_math_uti1, scale_math_uti2,
+    scale_math_int1, scale_math_int2,
+    scale_math_teach1, scale_math_teach2,
+    ses_quintile1, ses_quintile2,
+    starts_with("math_teach"),
+    early_algebra, math_score, 
+    first_gen, first_lang, frpl, stud_race, female, 
+    urban, public,
+    stu_id, starts_with("w2w1s")
+  )
+
+write_dta(df, "data/hsls_subset_wide.dta")
+
+################################################################################
+# Reshape to LONG
+################################################################################
+
+df_long <- df %>%
+  pivot_longer(
+    cols = c(scale_math_id1, scale_math_id2,
+             scale_math_eff1, scale_math_eff2,
+             scale_math_uti1, scale_math_uti2,
+             scale_math_int1, scale_math_int2,
+             scale_math_teach1, scale_math_teach2,
+             adv_math1, adv_math2, ses_quintile1, ses_quintile2),
+    names_to = c(".value","time"),
+    names_pattern = "(.*)([12])"
+  ) %>%
+  mutate(
+    time = if_else(time == "1", 0, 1)
+  )
+
+write_dta(df_long, "data/hsls_subset_long.dta")
+```
+
+
+
+# Imputation
+
+## Dry run & prep
+```{r}
+colSums(is.na(df_long))
+df_imp_prep <- df_long %>% as_factor()
+# dry run
+meth <- mice::mice(df_imp_prep, maxit = 0, m = 1)
+meth$method
+```
+
+## Impute!
+```{r}
+start_time <- Sys.time()
+
+df_imp <- mice(df_imp_prep, m = 20, nnet.MaxNWts = 3000)
+save(df_imp, "data/df_imp.rdata")
+
+end_time <- Sys.time()
+end_time - start_time
+```
+
+

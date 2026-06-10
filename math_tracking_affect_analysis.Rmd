@@ -1,0 +1,105 @@
+---
+title: "Math Affect"
+output: word_document
+date: "`r Sys.Date()`"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load Data
+```{r}
+library(mice)
+library(tidyverse)
+library(gtsummary)
+library(jtools)
+library(flextable)
+library(survey)
+library(haven)
+library(mitools)
+```
+
+```{r}
+df_long <- read_dta("data/hsls_subset_long.dta")
+
+df <- df_long %>% as_factor()
+
+df$stud_race <- relevel(df$stud_race, ref = "Asian")
+```
+
+# Descriptive Statistics
+```{r}
+df_subset <- df %>% dplyr::select(adv_math, frpl, scale_math_teach, first_lang,
+                                  early_algebra,
+                           scale_math_id, scale_math_eff, scale_math_uti, 
+                           scale_math_int,
+                           scale_math_teach, first_gen, female, ses_quintile,
+                           stud_race, public, math_score, time,
+                           urban, scale_math_eff, scale_math_uti)
+df_subset %>% tbl_summary
+```
+
+# Models
+
+## Efficacy
+```{r}
+eff_lm <- lm(
+  data = df,
+  scale_math_eff ~ 
+    time*adv_math + 
+    scale_math_teach +
+    frpl + first_lang + first_gen + female + 
+    math_score + early_algebra +
+    public + urban + stud_race)
+
+summ(eff_lm)
+```
+
+## Identity
+```{r}
+id_lm <- lm(
+  data = df,
+  scale_math_id ~ 
+    time*adv_math + 
+    scale_math_teach +
+    frpl + first_lang + first_gen + female + 
+    math_score + early_algebra +
+    public + urban + stud_race +
+    math_teach_adv_deg + math_teach_cert_type + math_teach_years)
+
+id_lm %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
+```
+
+## Interest
+
+```{r}
+int_lm <- lm(
+  data = df,
+  scale_math_int ~ 
+    time*adv_math + 
+    scale_math_teach +
+    frpl + first_lang + first_gen + female + 
+    math_score + early_algebra +
+    public + urban + stud_race +
+    math_teach_adv_deg + math_teach_cert_type + math_teach_years)
+
+int_lm %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
+```
+
+## Utility
+```{r}
+uti_lm <- lm(
+  data = df,
+  scale_math_uti ~ 
+    time*adv_math + 
+    scale_math_teach +
+    frpl + first_lang + first_gen + female + 
+    math_score + early_algebra +
+    public + urban + stud_race +
+    math_teach_adv_deg + math_teach_cert_type + math_teach_years)
+
+uti_lm %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
+```
+
