@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-*.dta
 */data
+*.dta
+.positai
 .DS_Store
