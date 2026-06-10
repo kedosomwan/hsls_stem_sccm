@@ -26,33 +26,41 @@ df_long <- read_dta("data/hsls_subset_long.dta")
 
 df <- df_long %>% as_factor()
 
-df$stud_race <- relevel(df$stud_race, ref = "Asian")
+df$race_ethnicity <- relevel(df$race_ethnicity, ref = "Asian")
 ```
 
 # Descriptive Statistics
 ```{r}
-df_subset <- df %>% dplyr::select(adv_math, frpl, scale_math_teach, first_lang,
-                                  early_algebra,
-                           scale_math_id, scale_math_eff, scale_math_uti, 
-                           scale_math_int,
-                           scale_math_teach, first_gen, female, ses_quintile,
-                           stud_race, public, math_score, time,
-                           urban, scale_math_eff, scale_math_uti)
+df_subset <- df %>% dplyr::select(adv_math, math_level,
+                                  teach_treat_std, first_lang,
+                                  early_algebra, scale_math_id, scale_math_eff, 
+                                  scale_math_uti, scale_math_int, female, 
+                                  ses_quintile, race_ethnicity, public, math_score, 
+                                  time, urban, scale_math_eff, scale_math_uti)
 df_subset %>% tbl_summary
 ```
 
-# Models
+## Alpha
+```{r}
+df_wide <- read_dta("data/hsls_subset_wide.dta")
+df_alpha1 <- df_wide %>% dplyr::select(math_treat1, math_easy1, math_interest1)
+df_alpha2 <- df_wide %>% dplyr::select(math_treat2, math_easy2, math_interest2)
+psych::alpha(df_alpha1)
+psych::alpha(df_alpha2)
+```
+
+
+# Unweighted Models
 
 ## Efficacy
 ```{r}
 eff_lm <- lm(
   data = df,
   scale_math_eff ~ 
-    time*adv_math + 
-    scale_math_teach +
-    frpl + first_lang + first_gen + female + 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
-    public + urban + stud_race)
+    public + urban )
 
 summ(eff_lm)
 ```
@@ -62,14 +70,12 @@ summ(eff_lm)
 id_lm <- lm(
   data = df,
   scale_math_id ~ 
-    time*adv_math + 
-    scale_math_teach +
-    frpl + first_lang + first_gen + female + 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
-    public + urban + stud_race +
-    math_teach_adv_deg + math_teach_cert_type + math_teach_years)
+    public + urban )
 
-id_lm %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
+summ(id_lm)
 ```
 
 ## Interest
@@ -78,14 +84,12 @@ id_lm %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_no
 int_lm <- lm(
   data = df,
   scale_math_int ~ 
-    time*adv_math + 
-    scale_math_teach +
-    frpl + first_lang + first_gen + female + 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
-    public + urban + stud_race +
-    math_teach_adv_deg + math_teach_cert_type + math_teach_years)
+    public + urban )
 
-int_lm %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
+summ(int_lm)
 ```
 
 ## Utility
@@ -93,13 +97,264 @@ int_lm %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_n
 uti_lm <- lm(
   data = df,
   scale_math_uti ~ 
-    time*adv_math + 
-    scale_math_teach +
-    frpl + first_lang + first_gen + female + 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
     math_score + early_algebra +
-    public + urban + stud_race +
-    math_teach_adv_deg + math_teach_cert_type + math_teach_years)
+    public + urban )
 
-uti_lm %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
+summ(uti_lm)
+```
+## Combined Table
+```{r}
+eff_lm_tbl <- eff_lm %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+id_lm_tbl <-  id_lm %>% tbl_regression()  %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+int_lm_tbl <- int_lm %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+uti_lm_tbl <- uti_lm %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+
+tbl_merge(list(eff_lm_tbl, id_lm_tbl, int_lm_tbl, uti_lm_tbl),
+          tab_spanner = c("Self-Efficacy", "Identity", "Interest", "Utility")) %>% 
+  as_flex_table()
 ```
 
+# Weighted Models
+## Weight Data
+```{r}
+df_brr <- svrepdesign(
+  weights = ~w2w1stu, 
+  repweights = "w2w1stu[001-200]",
+  type = "BRR", 
+  data = df,
+  combined.weights = TRUE
+)
+```
+
+## Efficacy
+```{r}
+eff_lm_svy <- svyglm(
+  design = df_brr,
+  scale_math_eff ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban)
+
+summ(eff_lm_svy)
+```
+
+## Identity
+```{r}
+id_lm_svy <- svyglm(
+  design = df_brr,
+  scale_math_id ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban )
+
+summ(id_lm_svy)
+```
+
+## Interest
+
+```{r}
+int_lm_svy <- svyglm(
+  design = df_brr,
+  scale_math_int ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban )
+
+summ(int_lm_svy)
+```
+
+## Utility
+```{r}
+uti_lm_svy <- svyglm(
+  design = df_brr,
+  scale_math_uti ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban )
+
+summ(uti_lm_svy)
+```
+## Combined Table
+```{r}
+eff_lm_tbl_svy <- eff_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+ id_lm_tbl_svy <-  id_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+int_lm_tbl_svy <- int_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+uti_lm_tbl_svy <- uti_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+
+tbl_merge(list(eff_lm_tbl_svy, id_lm_tbl_svy, int_lm_tbl_svy, uti_lm_tbl_svy),
+          tab_spanner = c("Self-Efficacy", "Identity", "Interest", "Utility")) %>% 
+  as_flex_table()
+```
+
+# Imputed Models
+
+## Efficacy
+
+```{r}
+eff_lm_imp <- with(df_imp, lm(
+  scale_math_eff ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban))
+
+summ(eff_lm_imp)
+```
+
+## Identity
+
+```{r}
+id_lm_imp <- with(df_imp, lm(
+  scale_math_id ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban))
+
+summ(id_lm_imp)
+```
+
+## Interest
+
+```{r}
+int_lm_imp <- with(df_imp, lm(
+  scale_math_int ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban))
+
+summ(int_lm_imp)
+```
+
+## Utility
+```{r}
+uti_lm_imp <- with(df_imp, lm(
+  scale_math_uti ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban))
+
+summ(uti_lm_imp)
+```
+
+
+## Combined Table
+```{r}
+eff_lm_tbl_imp <- eff_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+ id_lm_tbl_imp <-  id_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+int_lm_tbl_imp <- int_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+uti_lm_tbl_imp <- uti_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+
+tbl_merge(list(eff_lm_tbl_imp, id_lm_tbl_imp, int_lm_tbl_imp, uti_lm_tbl_imp),
+          tab_spanner = c("Self-Efficacy", "Identity", "Interest", "Utility")) %>% 
+  as_flex_table()
+```
+
+# Imputed Weighted Models
+
+## Weigh Data & Write Function
+```{r}
+# Creates a list of completed dataset for survey weights
+imp_list <- imputationList(
+  lapply(1:df_imp$m, function(i) complete(df_imp, i))
+)
+
+# creates BRR survey design
+df_brr_imp <- svrepdesign(
+  weights = ~w2w1stu, 
+  repweights = "w2w1stu[001-200]",
+  type = "BRR", 
+  data = imp_list,
+  combined.weights = TRUE
+) 
+
+# function to exponentiate results and create dataframe with or, se, ll, ul, & p-value
+make_mi_table <- function(model) {
+  as.data.frame(summary(MIcombine(model))) %>%  # make dataframe of pooled model
+  tibble::rownames_to_column("variable") %>% # make variable column
+  mutate(
+    or = exp(results), # exponentiate estimate for ORs
+    ll = exp(`(lower`), # exponentiate ll
+    ul = exp(`upper)`), # exponentiate ul
+    z = results / se, 
+    p.value = 2 * (1 - pnorm(abs(z)))) # calculate p-value with Wald Test
+}
+```
+
+## Efficacy
+```{r}
+eff_lm_imp_svy <- with(df_brr_imp, svyglm(
+  scale_math_eff ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban))
+
+summary(MIcombine(eff_lm_imp_svy))
+
+```
+
+## Identity
+```{r}
+id_lm_imp_svy <- with(df_brr_imp, svyglm(
+  scale_math_id ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban))
+
+summary(MIcombine(id_lm_imp_svy))
+
+```
+
+## Interest
+
+```{r}
+int_lm_imp_svy <- with(df_brr_imp, svyglm(
+  scale_math_int ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban))
+
+summary(MIcombine(int_lm_imp_svy))
+
+```
+
+## Utility
+```{r}
+uti_lm_imp_svy <- with(df_brr_imp, svyglm(
+  scale_math_uti ~ 
+    time*math_level + teach_treat_std +
+    ses + first_lang + female + race_ethnicity +
+    math_score + early_algebra +
+    public + urban))
+
+summary(MIcombine(uti_lm_imp_svy))
+
+
+```
+
+
+## Combined Table
+```{r}
+eff_lm_tbl_imp_svy <- make_mi_table(eff_lm_imp_svy) %>% mutate(outcome = "efficacy")
+id_lm_tbl_imp_svy <-  make_mi_table(id_lm_imp_svy) %>% mutate(outcome = "identity")
+int_lm_tbl_imp_svy <- make_mi_table(int_lm_imp_svy) %>% mutate(outcome = "interest")
+uti_lm_tbl_imp_svy <- make_mi_table(uti_lm_imp_svy) %>% mutate(outcome = "utility")
+
+imp_svy_tbl <- cbind(eff_lm_tbl_imp_svy, id_lm_tbl_imp_svy)
+imp_svy_tbl <- cbind(imp_svy_tbl, int_lm_tbl_imp_svy)
+imp_svy_tbl <- cbind(imp_svy_tbl, uti_lm_tbl_imp_svy)
+
+imp_svy_tbl %>% as_flextable()
+
+```
