@@ -389,7 +389,7 @@ imp_svy_tbl <- imp_svy_tbl %>%
 write_csv(imp_svy_tbl, "imp_svy_tbl.csv")
 
 imp_svy_tbl <- imp_svy_tbl %>% 
-  dplyr::select(outcome, variable, Beta, stars, ll, ul) 
+  dplyr::select(outcome, variable, Beta, stars, se, ll, ul) 
 
 imp_svy_tbl %>% 
   flextable::flextable() %>% 
