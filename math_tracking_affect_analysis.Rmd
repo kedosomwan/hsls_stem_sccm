@@ -385,11 +385,14 @@ imp_svy_tbl <- imp_svy_tbl %>%
       p.value < 0.1   ~ ".",
       TRUE ~ ""
     ))
+
+write_csv(imp_svy_tbl, "imp_svy_tbl.csv")
+
 imp_svy_tbl <- imp_svy_tbl %>% 
-  dplyr::select(outcome, variable, Beta, stars, ll, ul, z, p.value) 
+  dplyr::select(outcome, variable, Beta, stars, ll, ul) 
 
 imp_svy_tbl %>% 
-  flextable::as_flextable() %>% 
+  flextable::flextable() %>% 
   colformat_double(digits = 3)
 
 ```
