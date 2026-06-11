@@ -309,10 +309,11 @@ meth$method
 start_time <- Sys.time()
 
 df_imp <- mice(df_imp_prep, m = 20, nnet.MaxNWts = 3000)
-save(df_imp, "data/df_imp.rdata")
-
 end_time <- Sys.time()
 end_time - start_time
+save(df_imp, file = "data/df_imp.rdata")
+
+
 ```
 
 
