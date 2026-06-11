@@ -187,11 +187,12 @@ summ(uti_lm_svy)
 ```
 ## Combined Table
 ```{r}
-eff_lm_tbl_svy <- eff_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
- id_lm_tbl_svy <-  id_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
-int_lm_tbl_svy <- int_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
-uti_lm_tbl_svy <- uti_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
-
+library(broom)
+library(performance)
+eff_lm_tbl_svy <- eff_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+ id_lm_tbl_svy <-  id_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+int_lm_tbl_svy <- int_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+uti_lm_tbl_svy <- uti_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
 tbl_merge(list(eff_lm_tbl_svy, id_lm_tbl_svy, int_lm_tbl_svy, uti_lm_tbl_svy),
           tab_spanner = c("Self-Efficacy", "Identity", "Interest", "Utility")) %>% 
   as_flex_table()
