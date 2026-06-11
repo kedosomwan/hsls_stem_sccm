@@ -398,6 +398,6 @@ imp_svy_tbl <- imp_svy_tbl %>%
 
 imp_svy_tbl %>% 
   flextable::flextable() %>% 
-  colformat_double(digits = 3)
+  colformat_double(digits = 2)
 
 ```
