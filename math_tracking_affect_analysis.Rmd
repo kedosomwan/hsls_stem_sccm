@@ -187,10 +187,10 @@ summ(uti_lm_svy)
 ```
 ## Combined Table
 ```{r}
-eff_lm_tbl_svy <- eff_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
- id_lm_tbl_svy <-  id_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
-int_lm_tbl_svy <- int_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
-uti_lm_tbl_svy <- uti_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+eff_lm_tbl_svy <- eff_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
+ id_lm_tbl_svy <-  id_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
+int_lm_tbl_svy <- int_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
+uti_lm_tbl_svy <- uti_lm_svy %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
 
 tbl_merge(list(eff_lm_tbl_svy, id_lm_tbl_svy, int_lm_tbl_svy, uti_lm_tbl_svy),
           tab_spanner = c("Self-Efficacy", "Identity", "Interest", "Utility")) %>% 
@@ -200,6 +200,18 @@ tbl_merge(list(eff_lm_tbl_svy, id_lm_tbl_svy, int_lm_tbl_svy, uti_lm_tbl_svy),
 `r knitr::knit_exit()`
 
 # Imputed Models
+
+## Load
+```{r}
+library(mice)
+library(mitools)
+library(howManyImputations)
+library(flextable)
+library(gtsummary)
+load("data/df_imp.rdata")
+
+```
+
 
 ## Efficacy
 
@@ -211,7 +223,7 @@ eff_lm_imp <- with(df_imp, lm(
     math_score + early_algebra +
     public + urban))
 
-summ(eff_lm_imp)
+eff_lm_imp %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
 ```
 
 ## Identity
@@ -224,7 +236,7 @@ id_lm_imp <- with(df_imp, lm(
     math_score + early_algebra +
     public + urban))
 
-summ(id_lm_imp)
+id_lm_imp %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
 ```
 
 ## Interest
@@ -237,7 +249,7 @@ int_lm_imp <- with(df_imp, lm(
     math_score + early_algebra +
     public + urban))
 
-summ(int_lm_imp)
+int_lm_imp %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
 ```
 
 ## Utility
@@ -249,16 +261,16 @@ uti_lm_imp <- with(df_imp, lm(
     math_score + early_algebra +
     public + urban))
 
-summ(uti_lm_imp)
+uti_lm_imp %>% tbl_regression() %>% add_significance_stars() %>% add_glance_source_note()
 ```
 
 
 ## Combined Table
 ```{r}
-eff_lm_tbl_imp <- eff_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
- id_lm_tbl_imp <-  id_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
-int_lm_tbl_imp <- int_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
-uti_lm_tbl_imp <- uti_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE)
+eff_lm_tbl_imp <- eff_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
+ id_lm_tbl_imp <-  id_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
+int_lm_tbl_imp <- int_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
+uti_lm_tbl_imp <- uti_lm_imp %>% tbl_regression() %>% add_significance_stars(hide_p = TRUE, hide_ci = TRUE, hide_se = TRUE) %>% add_glance_table(include = "adj.r.squared")
 
 tbl_merge(list(eff_lm_tbl_imp, id_lm_tbl_imp, int_lm_tbl_imp, uti_lm_tbl_imp),
           tab_spanner = c("Self-Efficacy", "Identity", "Interest", "Utility")) %>% 
@@ -269,13 +281,15 @@ tbl_merge(list(eff_lm_tbl_imp, id_lm_tbl_imp, int_lm_tbl_imp, uti_lm_tbl_imp),
 
 ## Weigh Data & Write Function
 ```{r}
+library(survey)
 # Creates a list of completed dataset for survey weights
 imp_list <- imputationList(
   lapply(1:df_imp$m, function(i) complete(df_imp, i))
 )
 
 # creates BRR survey design
-df_brr_imp <- svrepdesign(
+df_brr_imp <- svydesign(
+  id = ~stu_id,
   weights = ~w2w1stu, 
   repweights = "w2w1stu[001-200]",
   type = "BRR", 
@@ -288,10 +302,10 @@ make_mi_table <- function(model) {
   as.data.frame(summary(MIcombine(model))) %>%  # make dataframe of pooled model
   tibble::rownames_to_column("variable") %>% # make variable column
   mutate(
-    or = exp(results), # exponentiate estimate for ORs
-    ll = exp(`(lower`), # exponentiate ll
-    ul = exp(`upper)`), # exponentiate ul
-    z = results / se, 
+    Beta = results, # exponentiate estimate for ORs
+    ll = `(lower`, # exponentiate ll
+    ul = `upper)`, # exponentiate ul
+    z = Beta / se, 
     p.value = 2 * (1 - pnorm(abs(z)))) # calculate p-value with Wald Test
 }
 ```
@@ -358,10 +372,25 @@ id_lm_tbl_imp_svy <-  make_mi_table(id_lm_imp_svy) %>% mutate(outcome = "identit
 int_lm_tbl_imp_svy <- make_mi_table(int_lm_imp_svy) %>% mutate(outcome = "interest")
 uti_lm_tbl_imp_svy <- make_mi_table(uti_lm_imp_svy) %>% mutate(outcome = "utility")
 
-imp_svy_tbl <- cbind(eff_lm_tbl_imp_svy, id_lm_tbl_imp_svy)
-imp_svy_tbl <- cbind(imp_svy_tbl, int_lm_tbl_imp_svy)
-imp_svy_tbl <- cbind(imp_svy_tbl, uti_lm_tbl_imp_svy)
+imp_svy_tbl <- rbind(eff_lm_tbl_imp_svy, id_lm_tbl_imp_svy)
+imp_svy_tbl <- rbind(imp_svy_tbl, int_lm_tbl_imp_svy)
+imp_svy_tbl <- rbind(imp_svy_tbl, uti_lm_tbl_imp_svy) 
 
-imp_svy_tbl %>% as_flextable()
+# Add stars to the p-value column [Copilot generated 2026/06/10]
+imp_svy_tbl <- imp_svy_tbl %>%
+  mutate(
+    stars = case_when(
+      p.value < 0.001 ~ "***",
+      p.value < 0.01  ~ "**",
+      p.value < 0.05  ~ "*",
+      p.value < 0.1   ~ ".",
+      TRUE ~ ""
+    ))
+imp_svy_tbl <- imp_svy_tbl %>% 
+  dplyr::select(outcome, variable, Beta, stars, ll, ul, z, p.value) 
+
+imp_svy_tbl %>% 
+  flextable::as_flextable() %>% 
+  colformat_double(digits = 3)
 
 ```
