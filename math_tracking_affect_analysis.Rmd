@@ -388,16 +388,22 @@ imp_svy_tbl <- imp_svy_tbl %>%
       p.value < 0.01  ~ "**",
       p.value < 0.05  ~ "*",
       p.value < 0.1   ~ ".",
-      TRUE ~ ""
-    ))
+      TRUE ~ ""),
+    Beta_round = round(Beta, 2),
+    Beta_star = paste0(formatC(Beta_round, format = "f", digits = 2), stars)
+
+    )
 
 write_csv(imp_svy_tbl, "imp_svy_tbl.csv")
 
 imp_svy_tbl <- imp_svy_tbl %>% 
-  dplyr::select(outcome, variable, Beta, stars, se, ll, ul) 
+  dplyr::select(outcome, variable, Beta_star) 
 
-imp_svy_tbl %>% 
-  flextable::flextable() %>% 
-  colformat_double(digits = 2)
+imp_svy_tbl_wide <- imp_svy_tbl %>% pivot_wider(
+  names_from = c(outcome),
+  values_from = c(Beta_star)
+)
+imp_svy_tbl_wide %>% 
+  flextable::flextable()
 
 ```
