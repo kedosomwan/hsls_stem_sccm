@@ -37,6 +37,7 @@ df$race_ethnicity <- relevel(df$race_ethnicity, ref = "Asian")
 # Descriptive Statistics
 ```{r}
 df_subset <- df %>% dplyr::select(adv_math, math_level, teach_treat_std, time,
+                                  math_treat, math_easy, math_interest, 
                                   early_algebra, math_score,
                                   scale_math_id, scale_math_eff, 
                                   scale_math_uti, scale_math_int, 
@@ -48,10 +49,11 @@ df_subset %>% tbl_summary(by = time) %>% as_flex_table()
 ## Alpha
 ```{r}
 df_wide <- read_dta("data/hsls_subset_wide.dta")
+df_alpha <- df_wide %>% dplyr::select(math_treat1, math_easy1, math_interest1, math_treat2, math_easy2, math_interest2)
 df_alpha1 <- df_wide %>% dplyr::select(math_treat1, math_easy1, math_interest1)
 df_alpha2 <- df_wide %>% dplyr::select(math_treat2, math_easy2, math_interest2)
-psych::alpha(df_alpha1)
-psych::alpha(df_alpha2)
+psych::reliability(df_alpha1)
+psych::reliability(df_alpha2)
 ```
 
 
