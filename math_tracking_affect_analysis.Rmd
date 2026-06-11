@@ -36,13 +36,13 @@ df$race_ethnicity <- relevel(df$race_ethnicity, ref = "Asian")
 
 # Descriptive Statistics
 ```{r}
-df_subset <- df %>% dplyr::select(adv_math, math_level,
-                                  teach_treat_std, first_lang,
-                                  early_algebra, scale_math_id, scale_math_eff, 
-                                  scale_math_uti, scale_math_int, female, 
-                                  ses_quintile, race_ethnicity, public, math_score, 
-                                  time, urban, scale_math_eff, scale_math_uti)
-df_subset %>% tbl_summary
+df_subset <- df %>% dplyr::select(adv_math, math_level, teach_treat_std, time,
+                                  early_algebra, math_score,
+                                  scale_math_id, scale_math_eff, 
+                                  scale_math_uti, scale_math_int, 
+                                  first_lang, female, ses, race_ethnicity, 
+                                  public, urban)
+df_subset %>% tbl_summary(by = time) %>% as_flex_table()
 ```
 
 ## Alpha
@@ -55,7 +55,7 @@ psych::alpha(df_alpha2)
 ```
 
 
-# Unweighted Models
+# Unweighted Model
 
 ## Efficacy
 ```{r}
@@ -67,7 +67,9 @@ eff_lm <- lm(
     math_score + early_algebra +
     public + urban )
 
+
 summ(eff_lm)
+
 ```
 
 ## Identity
