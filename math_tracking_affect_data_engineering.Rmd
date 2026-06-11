@@ -255,6 +255,8 @@ df <- df %>%
     scale_math_uti1, scale_math_uti2,
     scale_math_int1, scale_math_int2,
     teach_treat_std1, teach_treat_std2,
+    math_treat1, math_easy1, math_interest1, 
+    math_treat2, math_easy2, math_interest2,
     ses_quintile1, ses_quintile2,
     ses1, ses2,
     starts_with("math_teach"),
@@ -272,6 +274,8 @@ df_long <- df %>%
              scale_math_uti1, scale_math_uti2,
              scale_math_int1, scale_math_int2,
              teach_treat_std1, teach_treat_std2,
+             math_treat1, math_easy1, math_interest1, 
+             math_treat2, math_easy2, math_interest2,
              adv_math1, adv_math2, math_level1, math_level2,
              ses_quintile1, ses_quintile2, ses1, ses2),
     names_to = c(".value","time"),
@@ -291,7 +295,9 @@ write_dta(df_long, "data/hsls_subset_long.dta")
 ## Dry run & prep
 ```{r}
 colSums(is.na(df_long))
-df_imp_prep <- df_long %>% as_factor()
+df_imp_prep <- df_long %>% as_factor() %>% dplyr::select(
+  -math_treat1, -math_easy1, -math_interest1, 
+  -math_treat2, -math_easy2, -math_interest2)
 # dry run
 meth <- mice::mice(df_imp_prep, maxit = 0, m = 1)
 meth$method
