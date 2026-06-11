@@ -209,6 +209,7 @@ tbl_merge(list(eff_lm_tbl_svy, id_lm_tbl_svy, int_lm_tbl_svy, uti_lm_tbl_svy),
 library(mice)
 library(mitools)
 library(howManyImputations)
+library(tidyverse)
 library(flextable)
 library(gtsummary)
 load("data/df_imp.rdata")
@@ -222,7 +223,7 @@ load("data/df_imp.rdata")
 eff_lm_imp <- with(df_imp, lm(
   scale_math_eff ~ 
     time*math_level + teach_treat_std*math_level +
-    ses + first_lang + female + race_ethnicity +
+    ses + first_lang + female + relevel(factor(race_ethnicity), ref = "Asian") +
     math_score + early_algebra +
     public + urban))
 
@@ -235,7 +236,7 @@ eff_lm_imp %>% tbl_regression() %>% add_significance_stars() %>% add_glance_sour
 id_lm_imp <- with(df_imp, lm(
   scale_math_id ~ 
     time*math_level + teach_treat_std*math_level +
-    ses + first_lang + female + race_ethnicity +
+    ses + first_lang + female + relevel(factor(race_ethnicity), ref = "Asian") +
     math_score + early_algebra +
     public + urban))
 
@@ -248,7 +249,7 @@ id_lm_imp %>% tbl_regression() %>% add_significance_stars() %>% add_glance_sourc
 int_lm_imp <- with(df_imp, lm(
   scale_math_int ~ 
     time*math_level + teach_treat_std*math_level +
-    ses + first_lang + female + race_ethnicity +
+    ses + first_lang + female + relevel(factor(race_ethnicity), ref = "Asian") +
     math_score + early_algebra +
     public + urban))
 
@@ -260,7 +261,7 @@ int_lm_imp %>% tbl_regression() %>% add_significance_stars() %>% add_glance_sour
 uti_lm_imp <- with(df_imp, lm(
   scale_math_uti ~ 
     time*math_level + teach_treat_std*math_level +
-    ses + first_lang + female + race_ethnicity +
+    ses + first_lang + female + relevel(factor(race_ethnicity), ref = "Asian") +
     math_score + early_algebra +
     public + urban))
 
@@ -318,7 +319,7 @@ make_mi_table <- function(model) {
 eff_lm_imp_svy <- with(df_brr_imp, svyglm(
   scale_math_eff ~ 
     time*math_level + teach_treat_std*math_level +
-    ses + first_lang + female + race_ethnicity +
+    ses + first_lang + female + relevel(factor(race_ethnicity), ref = "Asian") +
     math_score + early_algebra +
     public + urban))
 
@@ -331,7 +332,7 @@ summary(MIcombine(eff_lm_imp_svy))
 id_lm_imp_svy <- with(df_brr_imp, svyglm(
   scale_math_id ~ 
     time*math_level + teach_treat_std*math_level +
-    ses + first_lang + female + race_ethnicity +
+    ses + first_lang + female + relevel(factor(race_ethnicity), ref = "Asian") +
     math_score + early_algebra +
     public + urban))
 
@@ -345,7 +346,7 @@ summary(MIcombine(id_lm_imp_svy))
 int_lm_imp_svy <- with(df_brr_imp, svyglm(
   scale_math_int ~ 
     time*math_level + teach_treat_std*math_level +
-    ses + first_lang + female + race_ethnicity +
+    ses + first_lang + female + relevel(factor(race_ethnicity), ref = "Asian") +
     math_score + early_algebra +
     public + urban))
 
@@ -358,7 +359,7 @@ summary(MIcombine(int_lm_imp_svy))
 uti_lm_imp_svy <- with(df_brr_imp, svyglm(
   scale_math_uti ~ 
     time*math_level + teach_treat_std*math_level +
-    ses + first_lang + female + race_ethnicity +
+    ses + first_lang + female + relevel(factor(race_ethnicity), ref = "Asian") +
     math_score + early_algebra +
     public + urban))
 
