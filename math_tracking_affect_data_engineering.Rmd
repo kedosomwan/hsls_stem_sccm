@@ -27,18 +27,11 @@ library(flextable)
 library(forcats)
 library(mice)
 
-```
-
-```{r load dataset}
-################################################################################
-# Subset Data & Label Missing
-################################################################################
-
 # Load data
 hsls_raw <- read_dta("data/hsls_17_student_pets_sr_v1_0.dta")
-
 # lowercase all variable names
 names(hsls_raw) <- tolower(names(hsls_raw))
+
 ```
 
 ## Subset Data for Analysis
